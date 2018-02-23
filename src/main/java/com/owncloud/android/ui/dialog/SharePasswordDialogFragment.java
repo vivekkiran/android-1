@@ -104,7 +104,11 @@ public class SharePasswordDialogFragment extends DialogFragment
                 .setNegativeButton(R.string.common_cancel, this)
                 .setTitle(R.string.share_link_password_title);
         Dialog d = builder.create();
-        d.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+
+        if (d.getWindow() != null) {
+            d.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        }
+        
         return d;
     }
 
