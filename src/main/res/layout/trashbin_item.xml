@@ -35,11 +35,9 @@
             android:id="@+id/thumbnail"
             android:layout_width="@dimen/file_icon_size"
             android:layout_height="@dimen/file_icon_size"
-            android:layout_centerInParent="false"
             android:layout_gravity="center_vertical"
-            android:layout_marginLeft="@dimen/standard_half_margin"
-            android:layout_marginRight="@dimen/standard_half_margin"
-            android:layout_marginStart="@dimen/standard_half_margin"
+            android:layout_marginLeft="@dimen/standard_margin"
+            android:layout_marginRight="@dimen/standard_margin"
             android:contentDescription="@string/thumbnail"
             android:src="@drawable/folder"/>
 
