@@ -244,7 +244,7 @@
 
         <activity android:name=".ui.errorhandling.ErrorShowActivity" />
         <activity android:name=".ui.activity.UploadListActivity" />
-        <activity android:name=".ui.activity.TrashbinActivity"/>
+        <activity android:name=".ui.trashbin.TrashbinActivity"/>
         <activity android:name=".ui.activity.WhatsNewActivity"
                   android:theme="@style/Theme.ownCloud.noActionBar.Login" />
 

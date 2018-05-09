@@ -273,7 +273,7 @@ public class ThumbnailsCacheManager {
 
                     if (bitmap != null) {
                         // Handle PNG
-                        if (file.getMimetype().equalsIgnoreCase(PNG_MIMETYPE)) {
+                        if (file.getMimeType().equalsIgnoreCase(PNG_MIMETYPE)) {
                             bitmap = handlePNG(bitmap, pxW, pxH);
                         }
 
@@ -305,7 +305,7 @@ public class ThumbnailsCacheManager {
                                 }
 
                                 // Handle PNG
-                                if (thumbnail != null && file.getMimetype().equalsIgnoreCase(PNG_MIMETYPE)) {
+                                if (thumbnail != null && file.getMimeType().equalsIgnoreCase(PNG_MIMETYPE)) {
                                     thumbnail = handlePNG(thumbnail, thumbnail.getWidth(), thumbnail.getHeight());
                                 }
 
@@ -518,7 +518,7 @@ public class ThumbnailsCacheManager {
 
                     if (bitmap != null) {
                         // Handle PNG
-                        if (file.getMimetype().equalsIgnoreCase(PNG_MIMETYPE)) {
+                        if (file.getMimeType().equalsIgnoreCase(PNG_MIMETYPE)) {
                             bitmap = handlePNG(bitmap, pxW, pxH);
                         }
 
@@ -562,7 +562,7 @@ public class ThumbnailsCacheManager {
                                 }
 
                                 // Handle PNG
-                                if (file.getMimetype().equalsIgnoreCase(PNG_MIMETYPE)) {
+                                if (file.getMimeType().equalsIgnoreCase(PNG_MIMETYPE)) {
                                     thumbnail = handlePNG(thumbnail, pxW, pxH);
                                 }
                             } catch (Exception e) {
@@ -1151,7 +1151,7 @@ public class ThumbnailsCacheManager {
 
         if (bitmap != null) {
             // Handle PNG
-            if (file.getMimetype().equalsIgnoreCase(PNG_MIMETYPE)) {
+            if (file.getMimeType().equalsIgnoreCase(PNG_MIMETYPE)) {
                 bitmap = handlePNG(bitmap, pxW, pxH);
             }
 

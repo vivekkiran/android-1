@@ -1,74 +1,56 @@
 /*
  * Nextcloud Android client application
  *
- * @author Alejandro Bautista
- * Copyright (C) 2017 Alejandro Bautista
+ * @author Tobias Kaminsky
+ * Copyright (C) 2018 Tobias Kaminsky
+ * Copyright (C) 2018 Nextcloud GmbH.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 package com.owncloud.android.ui.adapter;
 
+import android.accounts.Account;
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Color;
-import android.graphics.drawable.PictureDrawable;
-import android.net.Uri;
+import android.graphics.Bitmap;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
-import android.text.TextPaint;
-import android.text.TextUtils;
-import android.text.format.DateFormat;
-import android.text.format.DateUtils;
-import android.text.method.LinkMovementMethod;
-import android.text.style.ClickableSpan;
-import android.text.style.ForegroundColorSpan;
-import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.bumptech.glide.GenericRequestBuilder;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.load.model.StreamEncoder;
-import com.bumptech.glide.load.resource.file.FileToStreamDecoder;
-import com.caverock.androidsvg.SVG;
 import com.owncloud.android.MainApp;
 import com.owncloud.android.R;
-import com.owncloud.android.datamodel.OCFile;
-import com.owncloud.android.lib.common.OwnCloudClient;
+import com.owncloud.android.authentication.AccountUtils;
+import com.owncloud.android.datamodel.FileDataStorageManager;
+import com.owncloud.android.datamodel.ThumbnailsCacheManager;
+import com.owncloud.android.db.PreferenceManager;
 import com.owncloud.android.lib.common.utils.Log_OC;
-import com.owncloud.android.lib.resources.activities.models.Activity;
-import com.owncloud.android.lib.resources.activities.models.RichElement;
-import com.owncloud.android.lib.resources.activities.models.RichObject;
-import com.owncloud.android.lib.resources.files.FileUtils;
-import com.owncloud.android.ui.interfaces.ActivityListInterface;
+import com.owncloud.android.lib.resources.files.TrashbinFile;
+import com.owncloud.android.ui.interfaces.TrashbinActivityInterface;
 import com.owncloud.android.utils.DisplayUtils;
+import com.owncloud.android.utils.FileSortOrder;
 import com.owncloud.android.utils.MimeTypeUtil;
-import com.owncloud.android.utils.glide.CustomGlideStreamLoader;
-import com.owncloud.android.utils.svg.SvgDecoder;
-import com.owncloud.android.utils.svg.SvgDrawableTranscoder;
-import com.owncloud.android.utils.svg.SvgSoftwareLayerSetter;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
 
 /**
  * Adapter for the trashbin view
@@ -76,264 +58,215 @@ import java.util.List;
 
 public class TrashbinListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private static final int HEADER_TYPE = 100;
-    private static final int ACTIVITY_TYPE = 101;
-    private final ActivityListInterface activityListInterface;
-    private final int px;
+    private static final int TRASHBIN_ITEM = 100;
+    private static final int TRASHBIN_FOOTER = 101;
+    private final int px = 1;
     private static final String TAG = TrashbinListAdapter.class.getSimpleName();
-    private OwnCloudClient mClient;
 
+    private TrashbinActivityInterface trashbinActivityInterface;
+    private List<TrashbinFile> files;
     private Context context;
-    private List<Object> mValues;
+    private Account account;
+    private FileDataStorageManager storageManager;
 
-    public TrashbinListAdapter(Context context) {
-        this.mValues = new ArrayList<>();
+    private ArrayList<ThumbnailsCacheManager.ThumbnailGenerationTask> asyncTasks = new ArrayList<>();
+
+    public TrashbinListAdapter(TrashbinActivityInterface trashbinActivityInterface,
+                               FileDataStorageManager storageManager, Context context) {
+        this.files = new ArrayList<>();
+        this.trashbinActivityInterface = trashbinActivityInterface;
+        this.account = AccountUtils.getCurrentOwnCloudAccount(context);
+        this.storageManager = storageManager;
         this.context = context;
     }
 
-    public void setActivityItems(List<Object> activityItems, OwnCloudClient client, boolean clear) {
-        this.mClient = client;
-        String sTime = "";
-
+    public void setTrashbinFiles(List<Object> trashbinFiles, boolean clear) {
         if (clear) {
-            mValues.clear();
+            files.clear();
         }
 
-        for (Object o : activityItems) {
-            Activity activity = (Activity) o;
-            String time;
-            if (activity.getDatetime() != null) {
-                time = getHeaderDateString(context, activity.getDatetime().getTime()).toString();
-            } else if (activity.getDate() != null) {
-                time = getHeaderDateString(context, activity.getDate().getTime()).toString();
-            } else {
-                time = context.getString(R.string.date_unknown);
-            }
-
-            if (sTime.equalsIgnoreCase(time)) {
-                mValues.add(activity);
-            } else {
-                sTime = time;
-                mValues.add(sTime);
-                mValues.add(activity);
-            }
+        for (Object file : trashbinFiles) {
+            files.add((TrashbinFile) file);
         }
+
+        files = PreferenceManager.getSortOrder(context, null).sortTrashbinFiles(files);
+
         notifyDataSetChanged();
     }
 
+    @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        if (viewType == ACTIVITY_TYPE) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.activity_list_item, parent, false);
-            return new ActivityViewHolder(v);
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == TRASHBIN_ITEM) {
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.trashbin_item, parent, false);
+            return new TrashbinFileViewHolder(v);
         } else {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.activity_list_item_header, parent, false);
-            return new ActivityViewHeaderHolder(v);
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_footer, parent, false);
+            return new TrashbinFooterViewHolder(v);
         }
-
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        if (holder instanceof TrashbinFileViewHolder) {
+            final TrashbinFileViewHolder trashbinFileViewHolder = (TrashbinFileViewHolder) holder;
+            TrashbinFile file = files.get(position);
 
-        if (holder instanceof ActivityViewHolder) {
-            final ActivityViewHolder activityViewHolder = (ActivityViewHolder) holder;
-            Activity activity = (Activity) mValues.get(position);
-            if (activity.getDatetime() != null) {
-                activityViewHolder.dateTime.setVisibility(View.VISIBLE);
-                activityViewHolder.dateTime.setText(DateFormat.format("HH:mm", activity.getDatetime().getTime()));
+            // layout
+            trashbinFileViewHolder.itemLayout.setOnClickListener(v -> trashbinActivityInterface.onItemClicked(file));
+
+            // thumbnail
+            trashbinFileViewHolder.thumbnail.setTag(file.getEtag());
+            setThumbnail(file, trashbinFileViewHolder.thumbnail);
+
+            // fileName
+            trashbinFileViewHolder.fileName.setText(file.getFileName());
+
+            // fileSize
+            trashbinFileViewHolder.fileSize.setText(DisplayUtils.bytesToHumanReadable(file.getFileLength()));
+
+            // originalLocation
+            String location;
+            int lastIndex = file.getOriginalLocation().lastIndexOf('/');
+            if (lastIndex != -1) {
+                location = "/" + file.getOriginalLocation().substring(0, lastIndex) + "/";
             } else {
-                activityViewHolder.dateTime.setVisibility(View.GONE);
+                location = "/";
             }
+            trashbinFileViewHolder.originalLocation.setText(location);
 
-            if (activity.getRichSubjectElement() != null &&
-                    !TextUtils.isEmpty(activity.getRichSubjectElement().getRichSubject())) {
-                activityViewHolder.subject.setVisibility(View.VISIBLE);
-                activityViewHolder.subject.setMovementMethod(LinkMovementMethod.getInstance());
-                activityViewHolder.subject.setText(addClickablePart(activity.getRichSubjectElement()),
-                        TextView.BufferType.SPANNABLE);
-                activityViewHolder.subject.setVisibility(View.VISIBLE);
-            } else if (!TextUtils.isEmpty(activity.getSubject())) {
-                activityViewHolder.subject.setVisibility(View.VISIBLE);
-                activityViewHolder.subject.setText(activity.getSubject());
+            // deletion time
+            trashbinFileViewHolder.deletionTimestamp.setText(DisplayUtils.getRelativeTimestamp(context,
+                    file.getDeletionTimestamp() * 1000));
+
+            // checkbox
+            trashbinFileViewHolder.checkbox.setVisibility(View.GONE);
+
+            // overflow menu
+            trashbinFileViewHolder.overflowMenu.setOnClickListener(v ->
+                    trashbinActivityInterface.onOverflowIconClicked(file, v));
+
+            // restore button
+            trashbinFileViewHolder.restoreButton.setOnClickListener(v ->
+                    trashbinActivityInterface.onRestoreIconClicked(file, v));
+
+        } else {
+            TrashbinFooterViewHolder trashbinFooterViewHolder = (TrashbinFooterViewHolder) holder;
+            trashbinFooterViewHolder.title.setText(getFooterText());
+        }
+    }
+
+    private String getFooterText() {
+        int filesCount = 0;
+        int foldersCount = 0;
+        int count = files.size();
+        TrashbinFile file;
+        for (int i = 0; i < count; i++) {
+            file = files.get(i);
+            if (file.isFolder()) {
+                foldersCount++;
             } else {
-                activityViewHolder.subject.setVisibility(View.GONE);
-            }
-
-            if (!TextUtils.isEmpty(activity.getMessage())) {
-                activityViewHolder.message.setText(activity.getMessage());
-                activityViewHolder.message.setVisibility(View.VISIBLE);
-            } else {
-                activityViewHolder.message.setVisibility(View.GONE);
-            }
-
-            if (!TextUtils.isEmpty(activity.getIcon())) {
-                downloadIcon(activity.getIcon(), activityViewHolder.activityIcon);
-            }
-
-            if (activity.getRichSubjectElement() != null &&
-                    activity.getRichSubjectElement().getRichObjectList().size() > 0) {
-
-                activityViewHolder.list.setVisibility(View.VISIBLE);
-                activityViewHolder.list.removeAllViews();
-
-                activityViewHolder.list.post(() -> {
-                    int w = activityViewHolder.list.getMeasuredWidth();
-                    int elPxSize = px + 20;
-                    int totalColumnCount = (int) Math.floor(w / elPxSize);
-
-                    try {
-                        activityViewHolder.list.setColumnCount(totalColumnCount);
-                    } catch (IllegalArgumentException e) {
-                        Log_OC.e(TAG, "error setting column count to " + totalColumnCount);
-                    }
-                });
-
-
-                for (RichObject richObject : activity.getRichSubjectElement().getRichObjectList()) {
-                    if (richObject.getPath() != null) {
-                        ImageView imageView = createThumbnail(richObject);
-                        activityViewHolder.list.addView(imageView);
-                    }
+                if (!file.isHidden()) {
+                    filesCount++;
                 }
-
-            } else {
-                activityViewHolder.list.removeAllViews();
-                activityViewHolder.list.setVisibility(View.GONE);
             }
+        }
+
+        return generateFooterText(filesCount, foldersCount);
+    }
+
+    private String generateFooterText(int filesCount, int foldersCount) {
+        String output;
+        Resources resources = context.getResources();
+
+        if (filesCount + foldersCount <= 0) {
+            output = "";
+        } else if (foldersCount <= 0) {
+            output = resources.getQuantityString(R.plurals.file_list__footer__file, filesCount, filesCount);
+        } else if (filesCount <= 0) {
+            output = resources.getQuantityString(R.plurals.file_list__footer__folder, foldersCount, foldersCount);
         } else {
-            ActivityViewHeaderHolder activityViewHeaderHolder = (ActivityViewHeaderHolder) holder;
-            activityViewHeaderHolder.title.setText((String) mValues.get(position));
+            output = resources.getQuantityString(R.plurals.file_list__footer__file, filesCount, filesCount) + ", " +
+                    resources.getQuantityString(R.plurals.file_list__footer__folder, foldersCount, foldersCount);
         }
+
+        return output;
     }
 
-    private ImageView createThumbnail(final RichObject richObject) {
-        String path = FileUtils.PATH_SEPARATOR + richObject.getPath();
-        OCFile file = storageManager.getFileByPath(path);
+    private void setThumbnail(TrashbinFile file, ImageView thumbnailView) {
+        if (file.isFolder()) {
+            thumbnailView.setImageDrawable(MimeTypeUtil.getDefaultFolderIcon(context));
+        } else {
+            if ((MimeTypeUtil.isImage(file) || MimeTypeUtil.isVideo(file)) && file.getRemoteId() != null) {
+                // Thumbnail in cache?
+                Bitmap thumbnail = ThumbnailsCacheManager.getBitmapFromDiskCache(
+                        ThumbnailsCacheManager.PREFIX_THUMBNAIL + String.valueOf(file.getRemoteId())
+                );
 
-        if (file == null) {
-            file = storageManager.getFileByPath(path + FileUtils.PATH_SEPARATOR);
-        }
-        if (file == null) {
-            file = new OCFile(path);
-            file.setRemoteId(richObject.getId());
-        }
-
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(px, px);
-        params.setMargins(10, 10, 10, 10);
-        ImageView imageView = new ImageView(context);
-        imageView.setLayoutParams(params);
-        imageView.setOnClickListener(v -> activityListInterface.onActivityClicked(richObject));
-        setBitmap(file, imageView);
-
-        return imageView;
-    }
-
-    private void setBitmap(OCFile file, ImageView fileIcon) {
-        // No Folder
-        if (!file.isFolder()) {
-            if ((MimeTypeUtil.isImage(file) || MimeTypeUtil.isVideo(file))) {
-                int placeholder;
-
-                if (MimeTypeUtil.isImage(file)) {
-                    placeholder = R.drawable.file_image;
+                if (thumbnail != null) {
+                    if (MimeTypeUtil.isVideo(file)) {
+                        Bitmap withOverlay = ThumbnailsCacheManager.addVideoOverlay(thumbnail);
+                        thumbnailView.setImageBitmap(withOverlay);
+                    } else {
+                        thumbnailView.setImageBitmap(thumbnail);
+                    }
                 } else {
-                    placeholder = R.drawable.file_movie;
+                    // generate new thumbnail
+                    if (ThumbnailsCacheManager.cancelPotentialThumbnailWork(file, thumbnailView)) {
+                        try {
+                            final ThumbnailsCacheManager.ThumbnailGenerationTask task =
+                                    new ThumbnailsCacheManager.ThumbnailGenerationTask(thumbnailView, storageManager,
+                                            account, asyncTasks);
+
+                            final ThumbnailsCacheManager.AsyncThumbnailDrawable asyncDrawable =
+                                    new ThumbnailsCacheManager.AsyncThumbnailDrawable(context.getResources(),
+                                            thumbnail, task);
+                            thumbnailView.setImageDrawable(asyncDrawable);
+                            asyncTasks.add(task);
+                            task.execute(new ThumbnailsCacheManager.ThumbnailGenerationTaskObject(file,
+                                    file.getRemoteId()));
+                        } catch (IllegalArgumentException e) {
+                            Log_OC.d(TAG, "ThumbnailGenerationTask : " + e.getMessage());
+                        }
+                    }
                 }
 
-                String uri = mClient.getBaseUri() + "/index.php/apps/files/api/v1/thumbnail/" + px + "/" + px +
-                        Uri.encode(file.getRemotePath(), "/");
-
-                Glide.with(context).using(new CustomGlideStreamLoader()).load(uri).placeholder(placeholder)
-                        .error(placeholder).into(fileIcon); // using custom fetcher
-
+                if (file.getMimeType().equalsIgnoreCase("image/png")) {
+                    thumbnailView.setBackgroundColor(context.getResources().getColor(R.color.background_color));
+                }
             } else {
-                fileIcon.setImageDrawable(MimeTypeUtil.getFileTypeIcon(file.getMimetype(), file.getFileName(), context));
+                thumbnailView.setImageDrawable(MimeTypeUtil.getFileTypeIcon(file.getMimeType(), file.getFileName(),
+                        account, context));
             }
-        } else {
-            // Folder
-            fileIcon.setImageDrawable(
-                    MimeTypeUtil.getFolderTypeIcon(file.isSharedWithMe() || file.isSharedWithSharee(),
-                            file.isSharedViaLink(), file.isEncrypted(), file.getMountType(), context));
         }
     }
-
-    private void downloadIcon(String icon, ImageView itemViewType) {
-        GenericRequestBuilder<Uri, InputStream, SVG, PictureDrawable> requestBuilder = Glide.with(context)
-                .using(Glide.buildStreamModelLoader(Uri.class, context), InputStream.class)
-                .from(Uri.class)
-                .as(SVG.class)
-                .transcode(new SvgDrawableTranscoder(), PictureDrawable.class)
-                .sourceEncoder(new StreamEncoder())
-                .cacheDecoder(new FileToStreamDecoder<>(new SvgDecoder()))
-                .decoder(new SvgDecoder())
-                .placeholder(R.drawable.ic_activity)
-                .error(R.drawable.ic_activity)
-                .animate(android.R.anim.fade_in)
-                .listener(new SvgSoftwareLayerSetter<>());
-
-        Uri uri = Uri.parse(icon);
-        requestBuilder
-                .diskCacheStrategy(DiskCacheStrategy.SOURCE)
-                .load(uri)
-                .into(itemViewType);
-    }
-
-    private SpannableStringBuilder addClickablePart(RichElement richElement) {
-        String text = richElement.getRichSubject();
-        SpannableStringBuilder ssb = new SpannableStringBuilder(text);
-
-        int idx1 = text.indexOf("{");
-        int idx2;
-        while (idx1 != -1) {
-            idx2 = text.indexOf("}", idx1) + 1;
-            final String clickString = text.substring(idx1 + 1, idx2 - 1);
-            final RichObject richObject = searchObjectByName(richElement.getRichObjectList(), clickString);
-            if (richObject != null) {
-                String name = richObject.getName();
-                ssb.replace(idx1, idx2, name);
-                text = ssb.toString();
-                idx2 = idx1 + name.length();
-                ssb.setSpan(new ClickableSpan() {
-                    @Override
-                    public void onClick(View widget) {
-                        activityListInterface.onActivityClicked(richObject);
-                    }
-
-                    @Override
-                    public void updateDrawState(TextPaint ds) {
-                        ds.setUnderlineText(false);
-                    }
-                }, idx1, idx2, 0);
-                ssb.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), idx1, idx2, 0);
-                ssb.setSpan(new ForegroundColorSpan(Color.BLACK), idx1, idx2, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            idx1 = text.indexOf("{", idx2);
-        }
-
-        return ssb;
-    }
-
-    private RichObject searchObjectByName(ArrayList<RichObject> richObjectList, String name) {
-        for (RichObject richObject : richObjectList) {
-            if (richObject.getTag().equalsIgnoreCase(name))
-                return richObject;
-        }
-        return null;
-    }
-
 
     @Override
     public int getItemViewType(int position) {
-        if (mValues.get(position) instanceof Activity)
-            return ACTIVITY_TYPE;
-        else
-            return HEADER_TYPE;
+        if (position == files.size()) {
+            return TRASHBIN_FOOTER;
+        } else {
+            return TRASHBIN_ITEM;
+        }
     }
 
     @Override
     public int getItemCount() {
-        return mValues.size();
+        return files.size() + 1;
+    }
+
+    public void cancelAllPendingTasks() {
+        for (ThumbnailsCacheManager.ThumbnailGenerationTask task : asyncTasks) {
+            if (task != null) {
+                task.cancel(true);
+                if (task.getGetMethod() != null) {
+                    Log_OC.d(TAG, "cancel: abort get method directly");
+                    task.getGetMethod().abort();
+                }
+            }
+        }
+
+        asyncTasks.clear();
     }
 
     /**
@@ -348,42 +281,46 @@ public class TrashbinListAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         return d.intValue();
     }
 
-    private CharSequence getHeaderDateString(Context context, long modificationTimestamp) {
-        if ((System.currentTimeMillis() - modificationTimestamp) < DateUtils.WEEK_IN_MILLIS) {
-            return DisplayUtils.getRelativeDateTimeString(context, modificationTimestamp, DateUtils.DAY_IN_MILLIS,
-                    DateUtils.WEEK_IN_MILLIS, 0);
-        } else {
-            return DateFormat.format("EEEE, MMMM d", modificationTimestamp);
-        }
+    public void setSortOrder(FileSortOrder sortOrder) {
+        PreferenceManager.setSortOrder(context, null, sortOrder);
+        files = sortOrder.sortTrashbinFiles(files);
+        notifyDataSetChanged();
     }
 
-    private class ActivityViewHolder extends RecyclerView.ViewHolder {
+    public class TrashbinFileViewHolder extends RecyclerView.ViewHolder {
+        @BindView(R.id.thumbnail)
+        public ImageView thumbnail;
+        @BindView(R.id.Filename)
+        public TextView fileName;
+        @BindView(R.id.fileSize)
+        public TextView fileSize;
+        @BindView(R.id.deletionTimestamp)
+        public TextView deletionTimestamp;
+        @BindView(R.id.originalLocation)
+        public TextView originalLocation;
+        @BindView(R.id.restore)
+        public ImageView restoreButton;
+        @BindView(R.id.customCheckbox)
+        public ImageView checkbox;
+        @BindView(R.id.overflowMenu)
+        public ImageView overflowMenu;
+        @BindView(R.id.ListItemLayout)
+        public LinearLayout itemLayout;
 
-        private final ImageView activityIcon;
-        private final TextView subject;
-        private final TextView message;
-        private final TextView dateTime;
-        private final GridLayout list;
-
-        private ActivityViewHolder(View itemView) {
+        private TrashbinFileViewHolder(View itemView) {
             super(itemView);
-            activityIcon = itemView.findViewById(R.id.activity_icon);
-            subject = itemView.findViewById(R.id.activity_subject);
-            message = itemView.findViewById(R.id.activity_message);
-            dateTime = itemView.findViewById(R.id.activity_datetime);
-            list = itemView.findViewById(R.id.list);
+            ButterKnife.bind(this, itemView);
+            // todo action mode
         }
     }
 
-    private class ActivityViewHeaderHolder extends RecyclerView.ViewHolder {
+    public class TrashbinFooterViewHolder extends RecyclerView.ViewHolder {
+        @BindView(R.id.footerText)
+        public TextView title;
 
-        private final TextView title;
-
-        private ActivityViewHeaderHolder(View itemView) {
+        private TrashbinFooterViewHolder(View itemView) {
             super(itemView);
-            title = itemView.findViewById(R.id.title_header);
-
+            ButterKnife.bind(this, itemView);
         }
     }
-
 }

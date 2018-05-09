@@ -545,7 +545,7 @@ public class PreviewImageFragment extends FileFragment {
                 int minHeight = screenSize.y;
                 for (int i = 0; i < maxDownScale && bitmapResult == null && drawableResult == null; i++) {
 
-                    if (ocFile.getMimetype().equalsIgnoreCase("image/svg+xml")) {
+                    if (ocFile.getMimeType().equalsIgnoreCase("image/svg+xml")) {
                         if (isCancelled()) {
                             return null;
                         }
@@ -582,7 +582,7 @@ public class PreviewImageFragment extends FileFragment {
                                 Log_OC.e(TAG, "File could not be loaded as a bitmap: " + storagePath);
                                 break;
                             } else {
-                                if (ocFile.getMimetype().equalsIgnoreCase("image/jpeg")) {
+                                if (ocFile.getMimeType().equalsIgnoreCase("image/jpeg")) {
                                     // Rotate image, obeying exif tag.
                                     bitmapResult = BitmapUtils.rotateImage(bitmapResult, storagePath);
                                 }
@@ -651,14 +651,14 @@ public class PreviewImageFragment extends FileFragment {
                             bitmap.getHeight());
                 }
 
-                if (result.ocFile.getMimetype().equalsIgnoreCase("image/png") ||
-                        result.ocFile.getMimetype().equals("image/svg+xml")) {
+                if (result.ocFile.getMimeType().equalsIgnoreCase("image/png") ||
+                        result.ocFile.getMimeType().equals("image/svg+xml")) {
                     if (getResources() != null) {
                         Resources r = getResources();
                         Drawable[] layers = new Drawable[2];
                         layers[0] = r.getDrawable(R.color.white);
                         Drawable bitmapDrawable;
-                        if (result.ocFile.getMimetype().equalsIgnoreCase("image/png") ) {
+                        if (result.ocFile.getMimeType().equalsIgnoreCase("image/png")) {
                             bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
                         } else {
                             bitmapDrawable = result.drawable;
@@ -667,7 +667,7 @@ public class PreviewImageFragment extends FileFragment {
                         LayerDrawable layerDrawable = new LayerDrawable(layers);
 
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            if (result.ocFile.getMimetype().equalsIgnoreCase("image/png")) {
+                            if (result.ocFile.getMimeType().equalsIgnoreCase("image/png")) {
                                 layerDrawable.setLayerHeight(0, convertDpToPixel(bitmap.getHeight(), getActivity()));
                                 layerDrawable.setLayerHeight(1, convertDpToPixel(bitmap.getHeight(), getActivity()));
                                 layerDrawable.setLayerWidth(0, convertDpToPixel(bitmap.getWidth(), getActivity()));
@@ -689,10 +689,10 @@ public class PreviewImageFragment extends FileFragment {
                     }
                 }
 
-                if (result.ocFile.getMimetype().equalsIgnoreCase("image/gif")) {
+                if (result.ocFile.getMimeType().equalsIgnoreCase("image/gif")) {
                     imageView.setGIFImageFromStoragePath(result.ocFile.getStoragePath());
-                } else if (!result.ocFile.getMimetype().equalsIgnoreCase("image/png") &&
-                        !result.ocFile.getMimetype().equals("image/svg+xml")) {
+                } else if (!result.ocFile.getMimeType().equalsIgnoreCase("image/png") &&
+                        !result.ocFile.getMimeType().equals("image/svg+xml")) {
                     imageView.setImageBitmap(bitmap);
                 }
 
@@ -783,8 +783,8 @@ public class PreviewImageFragment extends FileFragment {
 
     private void toggleImageBackground() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && getFile() != null
-                && (getFile().getMimetype().equalsIgnoreCase("image/png") ||
-                getFile().getMimetype().equalsIgnoreCase("image/svg+xml")) && getActivity() != null
+                && (getFile().getMimeType().equalsIgnoreCase("image/png") ||
+                getFile().getMimeType().equalsIgnoreCase("image/svg+xml")) && getActivity() != null
                 && getActivity() instanceof PreviewImageActivity && getResources() != null) {
             PreviewImageActivity previewImageActivity = (PreviewImageActivity) getActivity();
 

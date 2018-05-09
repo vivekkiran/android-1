@@ -27,6 +27,7 @@ import android.webkit.MimeTypeMap;
 import com.owncloud.android.R;
 import com.owncloud.android.datamodel.OCFile;
 import com.owncloud.android.lib.common.network.WebdavEntry;
+import com.owncloud.android.lib.resources.files.ServerFileInterface;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -240,7 +241,7 @@ public class MimeTypeUtil {
     }
 
     public static boolean isSVG(OCFile file) {
-        return "image/svg+xml".equalsIgnoreCase(file.getMimetype());
+        return "image/svg+xml".equalsIgnoreCase(file.getMimeType());
     }
 
     /**
@@ -248,23 +249,23 @@ public class MimeTypeUtil {
      * @return 'True' if the file contains audio
      */
     public static boolean isAudio(OCFile file) {
-        return MimeTypeUtil.isAudio(file.getMimetype());
+        return MimeTypeUtil.isAudio(file.getMimeType());
     }
 
     /**
      * @param file the file to be analyzed
      * @return 'True' if the file contains video
      */
-    public static boolean isVideo(OCFile file) {
-        return MimeTypeUtil.isVideo(file.getMimetype());
+    public static boolean isVideo(ServerFileInterface file) {
+        return MimeTypeUtil.isVideo(file.getMimeType());
     }
 
     /**
      * @param file the file to be analyzed
      * @return 'True' if the file contains an image
      */
-    public static boolean isImage(OCFile file) {
-        return (MimeTypeUtil.isImage(file.getMimetype())
+    public static boolean isImage(ServerFileInterface file) {
+        return (MimeTypeUtil.isImage(file.getMimeType())
                 || MimeTypeUtil.isImage(getMimeTypeFromPath(file.getRemotePath())));
     }
 
@@ -273,7 +274,7 @@ public class MimeTypeUtil {
      * @return 'True' if the file is simple text (e.g. not application-dependent, like .doc or .docx)
      */
     public static boolean isText(OCFile file) {
-        return (MimeTypeUtil.isText(file.getMimetype())
+        return (MimeTypeUtil.isText(file.getMimeType())
                 || MimeTypeUtil.isText(getMimeTypeFromPath(file.getRemotePath())));
     }
 
@@ -283,7 +284,7 @@ public class MimeTypeUtil {
      * @return 'True' if the file is a vcard
      */
     public static boolean isVCard(OCFile file) {
-        return isVCard(file.getMimetype()) || isVCard(getMimeTypeFromPath(file.getRemotePath()));
+        return isVCard(file.getMimeType()) || isVCard(getMimeTypeFromPath(file.getRemotePath()));
     }
 
     /**
