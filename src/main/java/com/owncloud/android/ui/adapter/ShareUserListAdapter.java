@@ -101,20 +101,10 @@ public class ShareUserListAdapter extends ArrayAdapter {
             userName.setText(name);
 
             /// bind listener to edit privileges
-            editShareButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mListener.editShare(mShares.get(position));
-                }
-            });
+            editShareButton.setOnClickListener(v -> mListener.editShare(mShares.get(position)));
 
             /// bind listener to unshare
-            unshareButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mListener.unshareButtonPressed(mShares.get(position));
-                }
-            });
+            unshareButton.setOnClickListener(v -> mListener.unshareButtonPressed(mShares.get(position)));
 
         }
         return view;
