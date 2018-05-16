@@ -116,7 +116,7 @@ public class TrashbinListAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             trashbinFileViewHolder.itemLayout.setOnClickListener(v -> trashbinActivityInterface.onItemClicked(file));
 
             // thumbnail
-            trashbinFileViewHolder.thumbnail.setTag(file.getEtag());
+            trashbinFileViewHolder.thumbnail.setTag(file.getRemoteId());
             setThumbnail(file, trashbinFileViewHolder.thumbnail);
 
             // fileName

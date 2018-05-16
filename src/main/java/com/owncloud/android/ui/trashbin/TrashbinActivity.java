@@ -15,7 +15,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.owncloud.android.R;
 import com.owncloud.android.authentication.AccountUtils;
@@ -105,6 +104,13 @@ public class TrashbinActivity extends FileActivity implements TrashbinActivityIn
         setupDrawer(R.id.nav_trashbin);
 
         ThemeUtils.setColoredTitle(getSupportActionBar(), R.string.trashbin_activity_title, this);
+
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
 
         setupContent();
     }
@@ -217,7 +223,8 @@ public class TrashbinActivity extends FileActivity implements TrashbinActivityIn
 
         popup.setOnMenuItemClickListener(item -> {
             new Thread(() -> {
-                RemoveTrashbinFileOperation removeTrashbinFileOperation = new RemoveTrashbinFileOperation(file.getRemotePath());
+                RemoveTrashbinFileOperation removeTrashbinFileOperation = new RemoveTrashbinFileOperation(
+                        file.getFullRemotePath());
                 RemoteOperationResult result = removeTrashbinFileOperation.execute(ownCloudClient);
 
                 if (result.isSuccess()) {
@@ -227,7 +234,6 @@ public class TrashbinActivity extends FileActivity implements TrashbinActivityIn
                 }
             }).start();
 
-            Toast.makeText(this, "Delete: " + file.getFileName(), Toast.LENGTH_LONG).show();
             return true;
         });
         popup.show();
@@ -238,7 +244,6 @@ public class TrashbinActivity extends FileActivity implements TrashbinActivityIn
         if (file.isFolder()) {
             currentPath = file.getRemotePath();
             loadItems();
-            Toast.makeText(this, "Item clicked: " + file.getFileName(), Toast.LENGTH_LONG).show();
 
             mDrawerToggle.setDrawerIndicatorEnabled("/".equals(currentPath));
 
@@ -261,8 +266,6 @@ public class TrashbinActivity extends FileActivity implements TrashbinActivityIn
                 loadItems();
             }
         }).start();
-
-        Toast.makeText(this, "Restore: " + file.getFileName(), Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -281,7 +284,7 @@ public class TrashbinActivity extends FileActivity implements TrashbinActivityIn
     @Override
     public void onBackPressed() {
         if ("/".equals(currentPath)) {
-            openDrawer();
+            super.onBackPressed();
         } else {
             currentPath = new File(currentPath).getParent();
             loadItems();
